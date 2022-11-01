@@ -9,7 +9,7 @@
 #'
 #' @param observeddata The entire observed dataset
 #' @param treedata A list of dataframes on which the trees are based. Not necessary if the data set is included in the tree object.
-#' @param trees A list of trees of class party, classes inheriting from party (e.g., glmtree), or classes that can be coerced to party (i.e., rpart, Weka_tree, XMLnode).
+#' @param trees A list of trees of class party, classes inheriting from party (e.g., glmtree), classes that can be coerced to party (i.e., rpart, Weka_tree, XMLnode), or a randomForest or ranger object.
 #' @param simmatrix A similaritymatrix with the similarities between all trees. Should be square, symmetric and have ones on the diagonal. Default=NULL
 #' @param m Similarity measure that should be used to calculate similarities, in the case that no similarity matrix was provided by the user. Default=NULL.
 #' m=1 is based on counting common predictors;
@@ -87,9 +87,23 @@
 clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m=NULL, tol=NULL, weight=NULL,fromclus=1, toclus=1, treecov=NULL, sameobs=FALSE, seed=NULL){
   ############################## Check forest input #####################
   ###  Some checks whether correct forest information is provided by user
+  if(typeof(trees) != "list" ) {
+    cat("trees must be a list of party tree objects, a list of trees that can be converted to party objects, or a randomforest or ranger object")
+    return(NULL)
+  }
   
+  if('ranger' %in% class(trees)){
+      trees<-sapply(1:trees$num.trees, function (k) ranger2party(observeddata, trees, k))
+  }else if('randomForest' %in% class(trees)){
+        trees<-sapply(1:trees$ntree, function (k) randomForest2party(observeddata, trees, k))
+    }else if(!'party' %in% class(trees[[1]])){
+     tryCatch(trees<- lapply(1:length(trees), function (i) as.party(trees[[i]])),
+             error=function(e){cat("trees must be a list of party tree objects or objects that can be coerced to party trees")})
+    }
+  
+   
   if(!is.null(trees[[1]]$data)){
-    treedt=lapply(1:length(trees), function(k) trees[[k]]$data)
+    treedt<- lapply(1:length(trees), function(k) trees[[k]]$data)
   }
   
   if(is.null(trees[[1]]$data)){
@@ -112,16 +126,6 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
   }
   
   
-  if(typeof(trees) != "list" ) {
-    cat("trees must be a list of party tree objects")
-    return(NULL)
-  }
-  
-  
-  if(!'party' %in% class(trees[[1]])){
-    tryCatch(trees<- lapply(1:length(trees), function (i) as.party(trees[[i]])),
-             error=function(e){cat("trees must be a list of party tree objects or objects that can be coerced to party trees")})
-  }
   
   ## Turn user provided forest information into object of class forest.
   forest <- list(partytrees = trees, treedata = treedt, observeddata=observeddata)
@@ -609,6 +613,141 @@ pamtree<- function(observeddata,treedata,Y,tree){
   attr(value, "class") <- "pamtree"
   return(value)
 }
+
+#### grow party tree (for turning ranger/randomforest tree into partytree)
+grow.party.tree <- function(party.tree, ranger.tree, data, factor.terms.index, currentNodeNumber) {
+  node <- ranger.tree[ranger.tree$nodeID == currentNodeNumber, ]
+  
+  factor.terms.index.left <- factor.terms.index
+  factor.terms.index.right <- factor.terms.index
+  
+  # Create individual node
+  if (node$terminal == TRUE) {
+    newNode <- list(id = node$nodeID)
+  } else {
+    dataclass <- class(data[[node$splitvarName]])
+    if ("numeric" %in% dataclass || "ordered" %in% dataclass) {
+      newNode <- list(id = node$nodeID, split = partysplit(varid = as.integer(node$splitvarID + 1), breaks = as.numeric(node$splitval)), kids = c(as.integer(node$leftChild), as.integer(node$rightChild)))
+    } else {
+      index <- factor.terms.index[[node$splitvarName]]
+      index[as.integer(unlist(strsplit(node$splitval, ',')))] = 2L
+      newNode <- list(id = node$nodeID,
+                      split = partysplit(
+                        varid = as.integer(node$splitvarID + 1),
+                        index = index
+                      ), 
+                      kids = c(as.integer(node$leftChild), as.integer(node$rightChild)))
+      factor.terms.index.left[[node$splitvarName]] <- replace(index, index==2L, NA)
+      factor.terms.index.right[[node$splitvarName]] <- replace(replace(index, index==1L, NA), index==2L, 1L)
+    }
+  }
+  
+  # Traverse tree recursively
+  if (node$terminal == FALSE) {
+    leftChildren <- grow.party.tree(party.tree, ranger.tree, data, factor.terms.index.left, node$leftChild)
+    rightChildren <- grow.party.tree(party.tree, ranger.tree, data, factor.terms.index.right, node$rightChild)
+    
+    party.tree <- c(party.tree, leftChildren, rightChildren)
+  }
+  
+  # Add newly created node to list of nodes
+  party.tree <- c(party.tree, list(newNode))
+  
+  party.tree
+}
+
+
+generic2party <- function(data, generic.tree, inbag, formula, weights) {
+  response <- all.vars(formula)[1]
+  terms <- terms(formula, data = data)
+  factor.terms <- all.vars(terms)[-1]
+  
+  factor.terms.index <- list()
+  for(factor.term in factor.terms) {
+    factor.terms.index[[factor.term]] <- rep(1L, length(levels(data[[factor.term]])))
+  }
+  
+  data <- data[complete.cases(data), c(all.vars(terms)[-1], response)]
+  
+  data <- as.data.frame(lapply(data, rep, inbag))
+  
+  if (is.null(weights)) {
+    weights <- rep(1L, nrow(data)) 
+  }
+  
+  nodelist = list()
+  nodelist <- grow.party.tree(nodelist, generic.tree, data, factor.terms.index, 0)
+  
+  nodes <- as.partynode(nodelist)
+  fitted <- fitted_node(nodes, data = data)
+  
+  tree <- party(nodes,
+                data = data, 
+                fitted = data.frame("(fitted)" = fitted,
+                                    "(response)" = data[[response]],
+                                    "(weights)" = weights,
+                                    check.names = FALSE),
+                terms = terms(formula, data = data)
+  )
+  as.constparty(tree)
+}
+
+ranger2party <- function(data, ranger.forest, treeNumber, weights = NULL) {
+  if (!exists("inbag.counts", where=ranger.forest)) {
+    stop("Run ranger with the keep.inbag=T parameter")
+  }
+  
+  ranger.tree <- treeInfo(ranger.forest, tree = treeNumber)
+  formula <- formula(ranger.forest$call[[2]])
+  inbag <- ranger.forest$inbag.counts[[treeNumber]]
+  
+  generic2party(data, ranger.tree, inbag, formula, weights)
+}
+
+randomForest2party <- function(data, randomForest.forest, treeNumber, weights = NULL) {
+  if (!exists("inbag", where=randomForest.forest)) {
+    stop("Run randomForest with the keep.inbag=T parameter")
+  }
+  
+  randomForest.tree.without.labels <- data.frame(getTree(randomForest.forest, k = treeNumber, labelVar = F))
+  randomForest.tree.with.labels <- data.frame(getTree(randomForest.forest, k = treeNumber, labelVar = T))
+  
+  # Convert randomForest format to Ranger format  
+  colnames(randomForest.tree.with.labels) <- c("leftChild", "rightChild", "splitvarName", "splitval", "terminal", "prediction")
+  colnames(randomForest.tree.without.labels) <- c("leftChild", "rightChild", "splitvarID", "splitval", "terminal", "prediction")
+  nodeID <- 0:(nrow(randomForest.tree.with.labels) -1)
+  leftChild <- randomForest.tree.with.labels$leftChild - 1L
+  rightChild <- randomForest.tree.with.labels$rightChild - 1L
+  splitvarID <- randomForest.tree.without.labels$splitvarID - 1L
+  splitvarName <- as.character(randomForest.tree.with.labels$splitvarName)
+  splitval <- randomForest.tree.with.labels$splitval
+  terminal <- ifelse(randomForest.tree.without.labels$terminal == -1, TRUE, FALSE)
+  is.na(rightChild) <- is.na(splitvarID) <- is.na(leftChild) <- is.na(splitval) <- terminal
+  prediction <- randomForest.tree.with.labels$prediction
+  generic.tree <- data.frame(nodeID, leftChild, rightChild, splitvarID, splitvarName, splitval, terminal, prediction)
+  
+  idx.unordered <- apply(array(splitvarName), 1, function(x) { !("ordered" %in% class(data[[x]]) || "numeric" %in% class(data[[x]]))})
+  idx.unordered[terminal] <- FALSE
+  
+  if (any(idx.unordered)) {
+    if (any(generic.tree$splitval[idx.unordered] > (2^31 - 1))) {
+      warning("Unordered splitting levels can only be shown for up to 31 levels.")
+      generic.tree$splitval[idx.unordered] <- NA
+    } else {
+      generic.tree$splitval[idx.unordered] <- sapply(generic.tree$splitval[idx.unordered], function(x) {
+        paste(which(as.logical(intToBits(2^31-1-x))), collapse = ",")
+      })
+    }
+  }  
+  
+  formula <- formula(randomForest.forest$call[[2]])
+  
+  inbag <- randomForest.forest$inbag[, treeNumber]
+  
+  generic2party(data, generic.tree, inbag, formula, weights)
+}
+
+
 
 
 
