@@ -82,6 +82,13 @@
 #'#Clustering the trees in this forest
 #'ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
 #'fromclus=1, toclus=5, sameobs=FALSE)
+#'
+#'#Example RandomForest
+#'Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=30,
+#'max.depth=3)
+#'
+#'ClusterForest<- clusterforest(observeddata=Pima.tr,trees=Pima.tr.ranger,m=5,
+#'                            fromclus=1, toclus=2, sameobs=FALSE)
 
 
 clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m=NULL, tol=NULL, weight=NULL,fromclus=1, toclus=1, treecov=NULL, sameobs=FALSE, seed=NULL){
@@ -625,10 +632,9 @@ grow.party.tree <- function(party.tree, ranger.tree, data, factor.terms.index, c
   if (node$terminal == TRUE) {
     newNode <- list(id = node$nodeID)
   } else {
-    dataclass <- class(data[[node$splitvarName]])
-    if ("numeric" %in% dataclass || "ordered" %in% dataclass) {
-      newNode <- list(id = node$nodeID, split = partysplit(varid = as.integer(node$splitvarID + 1), breaks = as.numeric(node$splitval)), kids = c(as.integer(node$leftChild), as.integer(node$rightChild)))
-    } else {
+    data.is.factor <- is.factor(data[[node$splitvarName]])
+    data.is.ordered <- is.ordered(data[[node$splitvarName]])
+    if (data.is.factor && !data.is.ordered) {
       index <- factor.terms.index[[node$splitvarName]]
       index[as.integer(unlist(strsplit(node$splitval, ',')))] = 2L
       newNode <- list(id = node$nodeID,
@@ -639,8 +645,11 @@ grow.party.tree <- function(party.tree, ranger.tree, data, factor.terms.index, c
                       kids = c(as.integer(node$leftChild), as.integer(node$rightChild)))
       factor.terms.index.left[[node$splitvarName]] <- replace(index, index==2L, NA)
       factor.terms.index.right[[node$splitvarName]] <- replace(replace(index, index==1L, NA), index==2L, 1L)
+    } else {
+      newNode <- list(id = node$nodeID, split = partysplit(varid = as.integer(node$splitvarID + 1), breaks = as.numeric(node$splitval)), kids = c(as.integer(node$leftChild), as.integer(node$rightChild)))
     }
   }
+  
   
   # Traverse tree recursively
   if (node$terminal == FALSE) {
