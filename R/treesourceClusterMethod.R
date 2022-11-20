@@ -12,6 +12,7 @@
 #' \item{clusterstds}{In case of a continuous covariate, the standard deviation of the covariate in each cluster}
 #' @export
 #' @importFrom plyr mapvalues
+#' @importFrom methods is
 #' @examples
 #' require(rpart)
 #' data_Amphet <-drugs[,c ("Amphet","Age", "Gender", "Edu", "Neuro", "Extr", "Open", "Agree",
@@ -114,14 +115,14 @@ treesource.clusterforest <- function(clusterforest, solution)
       }
 
 
-    if(class(covx)=="numeric"|class(covx)=="integer"){
+    if(is((covx),"numeric")|is(covx, "integer")){
       clustering <- clusterforest$clusters[[solution]]
       clevels=sort(unique(clustering))
       mean_c[[k]]<- sapply(1:length(unique(clustering)), function (i) mean(covx[clustering==clevels[i]]))
       sd_c[[k]]<- sapply(1:length(unique(clustering)), function (i) sd(covx[clustering==clevels[i]])  )
     }
 
-    if(!class(covx)=="numeric" & !class(covx)=="integer"){
+    if(!is(covx, "numeric") & !is(covx, "integer")){
     Clusters <- Sources <- freq <- cluster<- NULL
     source <- covx
     treesource<- as.numeric(mapvalues(source, from=c(unique(source)), to=seq(1,length(unique(source)))))

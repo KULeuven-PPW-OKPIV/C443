@@ -24,7 +24,7 @@ clusterforest(
 
 \item{treedata}{A list of dataframes on which the trees are based. Not necessary if the data set is included in the tree object.}
 
-\item{trees}{A list of trees of class party, classes inheriting from party (e.g., glmtree), or classes that can be coerced to party (i.e., rpart, Weka_tree, XMLnode).}
+\item{trees}{A list of trees of class party, classes inheriting from party (e.g., glmtree), classes that can be coerced to party (i.e., rpart, Weka_tree, XMLnode), or a randomForest or ranger object.}
 
 \item{simmatrix}{A similaritymatrix with the similarities between all trees. Should be square, symmetric and have ones on the diagonal. Default=NULL}
 
@@ -79,6 +79,7 @@ On this clusterforest object, several methods, such as plot, print and summary, 
 \examples{
 require(MASS)
 require(rpart)
+require(ranger)
 #Function to draw a bootstrap sample from a dataset
 DrawBoots <- function(dataset, i){
 set.seed(2394 + i)
@@ -103,6 +104,13 @@ Trees <- lapply(1:10, function (i) GrowTree(x=c("npreg", "glu",  "bp",  "skin",
 #Clustering the trees in this forest
 ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
 fromclus=1, toclus=5, sameobs=FALSE)
+
+#Example RandomForest
+Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=30,
+max.depth=3)
+
+ClusterForest<- clusterforest(observeddata=Pima.tr,trees=Pima.tr.ranger,m=5,
+                           fromclus=1, toclus=2, sameobs=FALSE)
 }
 \references{
 \cite{Kaufman, L., & Rousseeuw, P. J. (2009). Finding groups in data: an introduction to cluster analysis (Vol. 344). John Wiley & Sons.}

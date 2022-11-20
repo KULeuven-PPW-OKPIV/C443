@@ -47,6 +47,10 @@
 #' @importFrom graphics axis plot
 #' @importFrom parallel detectCores makeCluster clusterExport parSapply stopCluster
 #' @importFrom igraph graph_from_incidence_matrix max_bipartite_match
+#' @importFrom stats complete.cases
+#' @importFrom methods is
+#' @import ranger
+#' @import randomForest
 #' @import MASS
 #' @import partykit
 #' @import rpart
@@ -58,6 +62,7 @@
 #' @examples
 #' require(MASS)
 #' require(rpart)
+#' require(ranger)
 #'#Function to draw a bootstrap sample from a dataset
 #'DrawBoots <- function(dataset, i){
 #'set.seed(2394 + i)
@@ -120,7 +125,7 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
       return(NULL)
       }
     
-    if(typeof(treedata) != "list" || class(treedata[[1]]) != "data.frame") {
+    if(typeof(treedata) != "list" || !is(treedata[[1]], "data.frame")) {
     cat("please submit correct treedata: a list of data frames on which the trees were grown")
     return(NULL)
   }
@@ -197,7 +202,7 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
     }
 
     if (m == 3){
-      Xclass<- sapply(1:length(X), function(i) class(forest$observeddata[,X[i]] ) == "integer"|class(forest$observeddata[,X[i]] ) == "numeric")
+      Xclass<- sapply(1:length(X), function(i) is(forest$observeddata[,X[i]], "integer" )|is(forest$observeddata[,X[i]],"numeric" ))
 
       if("FALSE" %in% Xclass){
         cat("This measure only works on numerical splitvariables (class integer or numeric)")
@@ -218,7 +223,7 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
 
 
     if (m == 6){
-      Xclass<- sapply(1:length(X), function(i) class(forest$observeddata[,X[i]] ) == "integer"|class(forest$observeddata[,X[i]] ) == "numeric")
+      Xclass<- sapply(1:length(X), function(i) is(forest$observeddata[,X[i]] , "integer")|is(forest$observeddata[,X[i]], "numeric" )  )
 
       if("FALSE" %in% Xclass){
         cat("This measure only works on numerical splitvariables (class integer or numeric)")
@@ -229,7 +234,7 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
     }
 
     if(m==7){
-      Xclass<- sapply(1:length(X), function(i) class(forest$observeddata[,X[i]] ) == "integer"|class(forest$observeddata[,X[i]] ) == "numeric")
+      Xclass<- sapply(1:length(X), function(i) is(forest$observeddata[,X[i]], "integer" )|is(forest$observeddata[,X[i]], "numeric" ) )
 
       if("FALSE" %in% Xclass){
         cat("This measure only works on numerical splitvariables (class integer or numeric)")
@@ -247,7 +252,7 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
     if (m == 8){
 
 
-      Xclass<- sapply(1:length(X), function(i) class(forest$fulldata[,X[i]] ) == "factor")
+      Xclass<- sapply(1:length(X), function(i) is(forest$fulldata[,X[i]], "factor" ) )
 
       if("FALSE" %in% Xclass){
         cat("This measure only works on binary splitvariables (class factor)")
@@ -484,7 +489,7 @@ M6 <- function (observeddata, treedata, Y, X, trees, tol){
   s0<- lapply(1:n, function (k) splitvsets(pamtrees[[k]]$path0))
 
   for (k in 1:n){
-    if(class(treedata[[1]][,Y[1]]) != "factor" ) {
+    if(is(treedata[[1]][,Y[1]], "factor") ) {
       treedata[[k]][,Y[k]] <- as.factor(treedata[[k]][,Y[k]])
     }else{
       treedata[[k]] = treedata[[k]]
@@ -549,8 +554,8 @@ pamtree<- function(observeddata,treedata,Y,tree){
   if(length(tree) > 2){   ## Check whether there was a split
     paths <- listrulesparty(x=tree)   # lists all the paths from root to leave
     prednode <- predict(tree, newdata = observeddata, type = "node")  #predicts node for every row of full data
-    if(class(treedata[,Y]) != "factor" ) {treedata[,Y] <- as.factor(treedata[,Y])}  #check whether y is a factor, if not-- make it a factor
-    if(class(observeddata[,Y]) != "factor" ) {observeddata[,Y] <- as.factor(observeddata[,Y])}  #check whether y is a factor, if not-- make it a factor
+    if(is(treedata[,Y], "factor" )) {treedata[,Y] <- as.factor(treedata[,Y])}  #check whether y is a factor, if not-- make it a factor
+    if(is(observeddata[,Y], "factor") ) {observeddata[,Y] <- as.factor(observeddata[,Y])}  #check whether y is a factor, if not-- make it a factor
 
     #if(class(tree)[1]== "glmtree"){
       predresp <- predict(tree, newdata= observeddata, type="response")  #predicts response for every row of full data
@@ -601,7 +606,7 @@ pamtree<- function(observeddata,treedata,Y,tree){
     path0<- NULL
 
     tree <- list(numeric(0), numeric(0))
-    if(class(treedata[,Y]) != "factor" ) {treedata[,Y] <- as.factor(treedata[,Y])}
+    if(is(treedata[,Y], "factor") ) {treedata[,Y] <- as.factor(treedata[,Y])}
     y <- treedata[, Y]
 
     #check what class is most prevalent
