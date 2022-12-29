@@ -618,6 +618,8 @@ pamtree<- function(observeddata,treedata,Y,tree){
     predresp <- rep(g1, length(y))
     predresp<- factor(predresp, levels=levels(treedata[,Y]))
     prednode <- rep(1, length(y))
+    prednodetrain <- rep(1, length(y))
+    predresptrain<- rep(g1, length(y))
   }
 
 
