@@ -78,8 +78,8 @@ On this clusterforest object, several methods, such as plot, print and summary, 
 }
 \examples{
 require(MASS)
-require(rpart)
 require(ranger)
+require(rpart)
 #Function to draw a bootstrap sample from a dataset
 DrawBoots <- function(dataset, i){
 set.seed(2394 + i)
@@ -96,17 +96,17 @@ GrowTree <- function(x,y,BootsSample, minsplit = 40, minbucket = 20, maxdepth =3
  return(tree)
 }
 
-#Use functions to draw 20 boostrapsamples and grow a tree on each sample
+#Use functions to draw 10 boostrapsamples and grow a tree on each sample
 Boots<- lapply(1:10, function(k) DrawBoots(Pima.tr ,k))
 Trees <- lapply(1:10, function (i) GrowTree(x=c("npreg", "glu",  "bp",  "skin",
 "bmi", "ped", "age"), y="type", Boots[[i]] ))
 
 #Clustering the trees in this forest
 ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
-fromclus=1, toclus=5, sameobs=FALSE)
+fromclus=1, toclus=3, sameobs=FALSE)
 
 #Example RandomForest
-Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=30,
+Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=20,
 max.depth=3)
 
 ClusterForest<- clusterforest(observeddata=Pima.tr,trees=Pima.tr.ranger,m=5,

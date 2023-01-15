@@ -86,7 +86,7 @@
 #'
 #'#Clustering the trees in this forest
 #'ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
-#'fromclus=1, toclus=3, sameobs=FALSE)
+#'fromclus=1, toclus=2, sameobs=FALSE)
 #'
 #'#Example RandomForest
 #'Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=20,
