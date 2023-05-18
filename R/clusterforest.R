@@ -554,50 +554,30 @@ pamtree<- function(observeddata,treedata,Y,tree){
   if(length(tree) > 2){   ## Check whether there was a split
     paths <- listrulesparty(x=tree)   # lists all the paths from root to leave
     prednode <- predict(tree, newdata = observeddata, type = "node")  #predicts node for every row of full data
-    if(is(treedata[,Y], "factor" )) {treedata[,Y] <- as.factor(treedata[,Y])}  #check whether y is a factor, if not-- make it a factor
-    if(is(observeddata[,Y], "factor") ) {observeddata[,Y] <- as.factor(observeddata[,Y])}  #check whether y is a factor, if not-- make it a factor
+    
+    if(!is(treedata[,Y], "factor" )) {treedata[,Y] <- as.factor(treedata[,Y])}  #check whether y is a factor, if not-- make it a factor
+    if(!is(observeddata[,Y], "factor") ) {observeddata[,Y] <- as.factor(observeddata[,Y])}  #check whether y is a factor, if not-- make it a factor
 
-    #if(class(tree)[1]== "glmtree"){
       predresp <- predict(tree, newdata= observeddata, type="response")  #predicts response for every row of full data
-     # predresp[predresp<0.5] <- levels(observeddata[,Y])[1]
-    #  predresp[predresp!=levels(observeddata[,Y])[1]] <- levels(observeddata[,Y])[2]
       predresp <- factor(predresp, levels=c(levels(observeddata[,Y])[1], levels(observeddata[,Y])[2]))
-    #}else{
-     # predresp <- predict(tree, newdata = observeddata, type="prob")  #predicts response for every row of full data
-      #predresp <- predresp[,1]
-      #predresp[predresp<0.5]<- levels(observeddata[,Y])[1]
-      #predresp[predresp!= levels(observeddata[,Y])[1]]<- levels(observeddata[,Y])[2]
-      #predresp <- factor(predresp, levels=c(levels(observeddata[,Y])[1], levels(observeddata[,Y])[2]))
-    #}
 
-
-    #if(class(tree)[1]== "glmtree"){
       predresptrain <- predict(tree, newdata = treedata, type="response")  #predicts response for every row of full data
-     # predresptrain[predresptrain<0.5] <- levels(observeddata[,Y])[1]
-    #  predresptrain[predresptrain!=levels(observeddata[,Y])[1]] <- levels(observeddata[,Y])[2]
       predresptrain <- factor(predresptrain, levels=c(levels(observeddata[,Y])[1], levels(observeddata[,Y])[2]))
-    #}else{
-    #  predresptrain <- predict(tree, newdata = treedata, type="prob")  #predicts response for every row of full data
-    #  predresptrain <- predresptrain[,1]
-    #  predresptrain[predresptrain<0.5]<- levels(observeddata[,Y])[1]
-    #  predresptrain[predresptrain!= levels(observeddata[,Y])[1]]<- levels(observeddata[,Y])[2]
-    #  predresptrain <- factor(predresptrain, levels=c(levels(observeddata[,Y])[1], levels(observeddata[,Y])[2]))
-    #}
+  
+      prednodetrain <- predict(tree, newdata = treedata, type = "node")  #predicts node for every row of tree data
 
-    prednodetrain <- predict(tree, newdata = treedata, type = "node")  #predicts node for every row of tree data
-
-    frame <- matrix(c(0), length(unique(prednodetrain)), 2) #create matrix with one row for each node value
-    frame[, 1] <- sort(unique(prednodetrain))
-    frame[, 2] <- sapply(sort(unique(prednodetrain)), function(k) levels(predresptrain[prednodetrain == k][1])[predresptrain[prednodetrain == k][1]])  # check the predicted response for every node
-
-
-    #the paths that lead to a response of the second level of y
-    path1 <- paths[frame[, 2] == levels(observeddata[,Y])[2]]
-    path0 <- paths[frame[, 2] == levels(observeddata[,Y])[1]]
-
-    paths <- sapply(1:length(paths), function (k) strsplit(paths[k], " & "))  #split rules with multiple conditions in substrings
-    path1 <- sapply(1:length(path1), function (k) strsplit(path1[k], " & "))
-    path0 <- sapply(1:length(path0), function (k) strsplit(path0[k], " & "))
+      frame <- matrix(c(0), length(unique(prednodetrain)), 2) #create matrix with one row for each node value
+      frame[, 1] <- sort(unique(prednodetrain))
+      frame[, 2] <- sapply(sort(unique(prednodetrain)), function(k) levels(predresptrain[prednodetrain == k][1])[predresptrain[prednodetrain == k][1]])  # check the predicted response for every node
+  
+  
+      #the paths that lead to a response of the second level of y
+      path1 <- paths[frame[, 2] == levels(observeddata[,Y])[2]]
+      path0 <- paths[frame[, 2] == levels(observeddata[,Y])[1]]
+  
+      paths <- sapply(1:length(paths), function (k) strsplit(paths[k], " & "))  #split rules with multiple conditions in substrings
+      path1 <- sapply(1:length(path1), function (k) strsplit(path1[k], " & "))
+      path0 <- sapply(1:length(path0), function (k) strsplit(path0[k], " & "))
 
     #if there was no split
   }else{
