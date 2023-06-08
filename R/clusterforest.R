@@ -8,7 +8,7 @@
 #' On this clusterforest object, several methods, such as plot, print and summary, can be used.
 #'
 #' @param observeddata The entire observed dataset
-#' @param treedata A list of dataframes on which the trees are based. Not necessary if the data set is included in the tree object.
+#' @param treedata A list of dataframes on which the trees are based. Not necessary if the data set is included in the tree object already.
 #' @param trees A list of trees of class party, classes inheriting from party (e.g., glmtree), classes that can be coerced to party (i.e., rpart, Weka_tree, XMLnode), or a randomForest or ranger object.
 #' @param simmatrix A similaritymatrix with the similarities between all trees. Should be square, symmetric and have ones on the diagonal. Default=NULL
 #' @param m Similarity measure that should be used to calculate similarities, in the case that no similarity matrix was provided by the user. Default=NULL.
@@ -25,7 +25,8 @@
 #' @param weight If 1, the number of dissimilar paths in the Shannon and Banks measure (m=2), should be weighted by 1/their length (Otherwise they are weighted equally). Only applicable for m=2. Default=NULL
 #' @param fromclus The lowest number of clusters for which the PAM algorithm should be run. Default=1.
 #' @param toclus The highest number of clusters for which the PAM algorithm should be run. Default=1.
-#' @param treecov A vector/dataframe with the covariate value(s) for each tree in the forest (1 column per covariate).
+#' @param treecov A vector/dataframe with the covariate value(s) for each tree in the forest (1 column per covariate) in the case of known
+#' sources of variation underlying the forest, that should be linked to the clustering solution.
 #' @param sameobs Are the same observations included in every tree data set? For example, in the case of subsamples or bootstrap samples, the answer is no. Default=FALSE
 #' @param seed A seed number that should be used for the multi start procedure (based on which initial medoids are assigned). Default=NULL.
 #' @return The function returns an object of class clusterforest, with attributes:

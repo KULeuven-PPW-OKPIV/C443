@@ -14,7 +14,8 @@
 #' of that solution are plotted. 
 #' 
 #' @param x A clusterforest object
-#' @param solution The solution to plot the medoid trees from. Default = NULL
+#' @param solution The solution to plot the medoid trees from. If NULL, plots with the average silhouette width, within cluster similiarty
+#' (and predictive accuracy) per solution are returned. Default = NULL
 #' @param predictive_plots Indicating whether predictive plots should be returned: A plot showing the predictive accuracy
 #' when making predictions based on the medoid trees, and a plot of the agreement between the class label
 #' for each object predicted on the basis of the random forest as a whole versus based on the medoid trees. Default = FALSE.
@@ -105,9 +106,8 @@ plot.clusterforest <- function(x, ..., solution=NULL, predictive_plots=FALSE) {
 #'
 #' @param x A clusterforest object
 #' @param solution The solution to print the medoid trees from. Default = NULL
-#' @param ... Additional arguments
 #' @export
-print.clusterforest<- function(x, ..., solution=1){
+print.clusterforest<- function(x, solution=1){
   print(unlist(x$medoidtrees[solution], recursive=FALSE))
   cat("Cluster to which each tree is assigned: " ,unlist(x$clusters[solution], recursive=FALSE))
 }
@@ -116,9 +116,8 @@ print.clusterforest<- function(x, ..., solution=1){
 #'
 #' A function to summarize a clusterforest object.
 #' @param object A clusterforest object
-#' @param ... Additional arguments
 #' @export
-summary.clusterforest<- function(object, ...){
+summary.clusterforest<- function(object){
   cat("Solutions checked: " , length(object$medoids), "\n")
   cat("Average Silhouette Width per solution: \n" , unlist(object$avgsilwidth),  "\n")
   cat("Within cluster similarity per solution:\n " , unlist(object$withinsim),  "\n")
