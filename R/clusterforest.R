@@ -54,6 +54,7 @@
 #' @importFrom ranger treeInfo
 #' @importFrom randomForest getTree
 #' @importFrom foreach foreach %do% %dopar%
+#' @importFrom doParallel registerDoParallel
 #' @import MASS
 #' @import partykit
 #' @import rpart

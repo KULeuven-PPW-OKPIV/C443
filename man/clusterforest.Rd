@@ -16,7 +16,8 @@ clusterforest(
   toclus = 1,
   treecov = NULL,
   sameobs = FALSE,
-  seed = NULL
+  seed = NULL,
+  no_cores = detectCores(logical = FALSE)
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ is 1, then a split on that predictor in tree A will be assumed equal to a split 
 \item{sameobs}{Are the same observations included in every tree data set? For example, in the case of subsamples or bootstrap samples, the answer is no. Default=FALSE}
 
 \item{seed}{A seed number that should be used for the multi start procedure (based on which initial medoids are assigned). Default=NULL.}
+
+\item{no_cores}{Number of CPU cores used for computations. Default=detectCores(logical=FALSE)}
 }
 \value{
 The function returns an object of class clusterforest, with attributes:
