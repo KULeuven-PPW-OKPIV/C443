@@ -29,6 +29,7 @@
 #' sources of variation underlying the forest, that should be linked to the clustering solution.
 #' @param sameobs Are the same observations included in every tree data set? For example, in the case of subsamples or bootstrap samples, the answer is no. Default=FALSE
 #' @param seed A seed number that should be used for the multi start procedure (based on which initial medoids are assigned). Default=NULL.
+#' @param no_cores Number of CPU cores used for computations. Default=detectCores(logical=FALSE)
 #' @return The function returns an object of class clusterforest, with attributes:
 #' \item{medoids}{the position of the medoid trees in the forest (i.e., which element of the list of partytrees)}
 #' \item{medoidtrees}{the medoid trees}
@@ -52,6 +53,7 @@
 #' @importFrom methods is
 #' @importFrom ranger treeInfo
 #' @importFrom randomForest getTree
+#' @importFrom foreach foreach %do% %dopar%
 #' @import MASS
 #' @import partykit
 #' @import rpart
@@ -97,7 +99,7 @@
 #'                            fromclus=1, toclus=2, sameobs=FALSE)
 
 
-clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m=NULL, tol=NULL, weight=NULL,fromclus=1, toclus=1, treecov=NULL, sameobs=FALSE, seed=NULL){
+clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m=NULL, tol=NULL, weight=NULL,fromclus=1, toclus=1, treecov=NULL, sameobs=FALSE, seed=NULL, no_cores = detectCores(logical=FALSE)){
   ############################## Check forest input #####################
   ###  Some checks whether correct forest information is provided by user
   if(typeof(trees) != "list" ) {
@@ -138,6 +140,8 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
     treedt=treedata
   }
   
+  cl <- makeCluster(no_cores)
+  doParallel::registerDoParallel(cl)
   
   
   ## Turn user provided forest information into object of class forest.
@@ -230,7 +234,6 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
         cat("This measure only works on numerical splitvariables (class integer or numeric)")
         return(NULL)
       }
-
       sim <- M6(forest$observeddata, forest$treedata, Y, X, forest$partytrees, tol=NULL)
     }
 
@@ -295,43 +298,50 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
   medsseeds<- list(0)
   correct<- list(0)
 
-  for (i in fromclus:toclus){
-
+  pamtrees <- lapply(1:length(trees), function (i) pamtree(observeddata, treedata[[i]], Y[i], trees[[i]]))
+  g <- lapply(1:length(trees), function(k) pamtrees[[k]]$predresp)
+  
+  g_matrix <- t(sapply(1:length(trees), function(k) as.numeric(levels(g[[k]])[g[[k]]])))
+  
+  forpred <- function(k) {
+    levels_g1[which.max( c(sum(g_matrix[,k] == levels_g1[1], na.rm=TRUE),  sum(g_matrix[,k] == levels_g1[2], na.rm=TRUE)))]
+  }
+  levels_g1 = levels(g[[1]])
+  forestpred <- sapply(1:nrow(observeddata), forpred)
+  
+  
+  for (i in fromclus:toclus) {
     # first do the clustering with BUILD and SWAP phase
     clustering <- pam(x = 1 - treesimilarities, k = i, diss = TRUE, pamonce=3)
 
     if(is.null(seed)){
-      seed<- round(runif(1,0,100000))
+      seed <- round(runif(1,0,100000))
     }
-    #Then try 1000 random starts + SWAP Phase
-    for (j in 1:1000){
+    #Then try 100 random starts + SWAP Phase
+    for (j in 1:100){
       set.seed(seed+j)
-      initmedoids= sample(1:nrow(treesimilarities),i)
+      initmedoids = sample(1:nrow(treesimilarities),i)
       medsseeds[[j]] <- pam(1-treesimilarities,k=i,medoids=initmedoids, diss=TRUE, pamonce=3)
-      obj[j]<-medsseeds[[j]]$objective[2]
+      obj[j] <- medsseeds[[j]]$objective[2]
     }
 
-    # check whether objective function of one of the multistarts is better than the one of the build alogrithm
+    # check whether objective function of one of the multistarts is better than the one of the build algorithm
     # and if so, continue with the best result
      if( round(min(obj), 10) < round(clustering$objective[2], 10) ){
-      clustering<- medsseeds[[  which.min(round(min(obj), 10))]]
+      clustering <- medsseeds[[  which.min(round(min(obj), 10))]]
      }
 
 
-    medoids[[i]] <- clustering $ medoids
-    clusters[[i]] <- clustering $ clustering
+    medoids[[i]] <- clustering$medoids
+    clusters[[i]] <- clustering$clustering
 
-    meds<- list(0)
+    meds <- vector(mode = "list", length = i)
     for(j in 1:i){
       meds[[j]] <- trees[[medoids[[i]][j]]]
     }
 
-    mds[[i]]<- meds
+    mds[[i]] <- meds
     sil[[i]] <-  clustering $ silinfo $ avg.width
-
-    pamtrees <- lapply(1:length(trees), function (i) pamtree(observeddata,treedata[[i]], Y[i],trees[[i]]))
-    g<- lapply(1:length(trees), function(k) pamtrees[[k]]$predresp)
-    forestpred <- sapply(1:nrow(observeddata), function (k) levels(g[[1]])[which.max( c(sum(unlist(lapply(g, `[[`, k)) ==  levels(unlist(lapply(g, `[[`, k)))[1], na.rm=TRUE),  sum(unlist(lapply(g, `[[`, k)) ==  levels(unlist(lapply(g, `[[`, k)))[2], na.rm=TRUE) )   )] )
 
     gmed <- g[c(medoids[[i]])]
     w <- table(clusters[[i]])
@@ -340,27 +350,35 @@ clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m
     #unweighted
     #medpred1 <- sapply(1:nrow(observeddata), function (k) levels(gmed[[1]])[which.max( c(sum(unlist(lapply(gmed, `[[`, k)) ==  levels(unlist(lapply(gmed, `[[`, k)))[1], na.rm=TRUE),  sum(unlist(lapply(gmed, `[[`, k)) ==  levels(unlist(lapply(gmed, `[[`, k)))[2], na.rm=TRUE) )   )] )
     
+    #gmed_matrix <- as.numeric(levels(gmed[[1]])[gmed[[1]]])
+    gmed_matrix <- t(sapply(1:i, function(k) as.numeric(levels(gmed[[k]])[gmed[[k]]])))
+    levels_gmed1 = levels(gmed[[1]])
+    
+    medpred_weighted <- function(k) {
+      levels_gmed1[which.max( c(sum((gmed_matrix[,k] == levels_gmed1[1]) * w , na.rm=TRUE),  sum((gmed_matrix[,k] == levels_gmed1[2]) * w, na.rm=TRUE)))]
+    }
     #weighted
-    medpred <-sapply(1:nrow(observeddata), function (k) levels(gmed[[1]])[which.max( c(sum(as.numeric(unlist(lapply(gmed, `[[`, k)) ==  levels(unlist(lapply(gmed, `[[`, k)))[1]) *w , na.rm=TRUE),  sum(as.numeric(unlist(lapply(gmed, `[[`, k)) ==  levels(unlist(lapply(gmed, `[[`, k)))[2]) * w, na.rm=TRUE) )   )] )
-    
-    
+    medpred <- sapply(1:nrow(observeddata), medpred_weighted)
+
+
     agreement[[i]] <- mean(forestpred == medpred)
     
-    correct[[i]] <- mean(forest$observeddata[,Y][1]== medpred)
+    correct[[i]] <- mean(forest$observeddata[,Y][1] == medpred)
 
     sumw<- numeric(0)
     for (j in 1:i){
       sumw[j] <- sum(treesimilarities[clusters[[i]]==j, medoids[[i]][j]])
     }
-    sums[[i]]<- sum(sumw) / dim(treesimilarities)[1]
+    sums[[i]] <- sum(sumw) / dim(treesimilarities)[1]
+    
   }
 
-  #Accuracy of forest as a whole and of marginally best class
-  medpred <-sapply(1:nrow(observeddata), function (k) levels(gmed[[1]])[which.max( c(sum(as.numeric(unlist(lapply(gmed, `[[`, k)) ==  levels(unlist(lapply(gmed, `[[`, k)))[1]) *w , na.rm=TRUE),  sum(as.numeric(unlist(lapply(gmed, `[[`, k)) ==  levels(unlist(lapply(gmed, `[[`, k)))[2]) * w, na.rm=TRUE) )   )] )
+  stopCluster(cl)
   
-  correct[[i+1]] <- mean(forest$observeddata[,Y][1]== forestpred)
-  correct[[i+2]] <- max(table(forest$observeddata[,Y][1]))/sum(table(forest$observeddata[,Y][1]))
   
+  correct[[toclus + 1]] <- mean(forest$observeddata[,Y][1]== forestpred)
+  correct[[toclus + 2]] <- max(table(forest$observeddata[,Y][1]))/sum(table(forest$observeddata[,Y][1]))
+
   value <- list(medoids = medoids, medoidtrees = mds, clusters=clusters, avgsilwidth=sil, agreement=agreement, accuracy=correct, withinsim=sums, treesimilarities=treesimilarities, treecov=treecov, seed=seed)
   attr(value, "class") <- "clusterforest"
   return(value)
@@ -484,7 +502,6 @@ M6 <- function (observeddata, treedata, Y, X, trees, tol){
   pamtrees <- lapply(1:length(trees), function (i) pamtree(observeddata,treedata[[i]], Y[i],trees[[i]]))
 
   n <- length(pamtrees)
-  simmatrix <- matrix(c(0), n, n)
 
   s <- lapply(1:n, function (k) splitvsets(pamtrees[[k]]$path1))
   s0<- lapply(1:n, function (k) splitvsets(pamtrees[[k]]$path0))
@@ -499,16 +516,21 @@ M6 <- function (observeddata, treedata, Y, X, trees, tol){
 
   best<- lapply(1:n, function(k) (sum(treedata[[k]][,Y[k]] == levels(treedata[[k]][,Y[k]])[2])/nrow(treedata[[k]] ))>0.5)
 
-  sim <- sapply(1:n, function (k) sapply(k:n, function (l) simsets(paths1=s[[k]], paths2=s[[l]], paths01=s0[[k]], paths02=s0[[l]], X=X, tol=tol, best1=best[[k]],best2=best[[l]])))
-
-  for (i in 1:n){
-    si<- sim[[i]]
-    si[is.nan(si)] <- 1
-    simmatrix[i, c(i:n)] <- si
+  simmatrix <- foreach (k = 1:n, .combine=cbind) %dopar% {
+    sim <- numeric(n)
+    for (l in k:n) {
+      sim[l] <- simsets(paths1=s[[k]], paths2=s[[l]], paths01=s0[[k]], paths02=s0[[l]], X=X, tol=tol, best1=best[[k]], best2=best[[l]])
+    }
+    sim
   }
 
-  ind <- lower.tri(simmatrix)   #make matrix symmetric
-  simmatrix[ind] <- t(simmatrix)[ind]
+  for (k in 1:n) {
+    for (l in k:n) {
+      simmatrix[k, l] = simmatrix[l, k]
+    }
+  }
+
+  simmatrix = matrix(simmatrix, ncol=length(pamtrees), nrow=length(pamtrees), dimnames = NULL)
   return(simmatrix)
 }
 
@@ -551,7 +573,7 @@ M5 <- function(observeddata, treedata, Y, X, trees, sameobs){
 ## Function to turn each tree into a pam tree, containing the set of rules, the predictions on the full dataset and the nodes
 ## observeddata is the full dataset, treedata is the dataset for the current tree, Y is a vector with the outcome for each tree and tree are the partytrees
 
-pamtree<- function(observeddata,treedata,Y,tree){
+pamtree <- function(observeddata,treedata,Y,tree){
   if(length(tree) > 2){   ## Check whether there was a split
     paths <- listrulesparty(x=tree)   # lists all the paths from root to leave
     prednode <- predict(tree, newdata = observeddata, type = "node")  #predicts node for every row of full data
@@ -1029,17 +1051,26 @@ splitvsets <- function (paths){
 
 simsets<- function (paths1, paths2, paths01, paths02, X, tol,best1,best2){
 
-
-  if(length(paths1[[1]])&length(paths2[[1]])>0) {
-    J1 <- JaccardPaths(paths1, paths2, tol,X)
-    J0 <- JaccardPaths(paths01, paths02,tol,X)
-    sim<- (J1+J0)/2
-
+  if(length(paths1[[1]]) > 0 & length(paths2[[1]]) > 0) { 
+    if(is.null(tol)){
+      if(identical(paths1$splitvars, paths2$splitvars) & identical(paths01$splitvars, paths02$splitvars)){
+        sim <- 1
+      } else {
+        J1 <- JaccardPaths(paths1, paths2, tol,X)
+        J0 <- JaccardPaths(paths01, paths02,tol,X)
+        sim <- (J1+J0)/2
+      }
+    } else {
+      J1 <- JaccardPaths(paths1, paths2, tol,X)
+      J0 <- JaccardPaths(paths01, paths02,tol,X)
+      sim <- (J1+J0)/2
+    }
+    
   } else{
     if(length(paths1[[1]]) == 0 & length(paths2[[1]]) == 0){
       if(best1==best2){
         sim <- 1
-      } else{sim<-0}
+      } else{sim <- 0}
 
     } else{sim <- 0}
   }
@@ -1240,7 +1271,3 @@ disjnorm <- function (pamtree, tree,observeddata, treedata,X, Y, sameobs){
   }
   return(paths)
 }
-
-
-
-
