@@ -480,11 +480,7 @@ M4<- function (observeddata, treedata, Y, trees, sameobs){
   }
 
   par<- lapply(1:n, function (s) part(treedata[[s]], pamtrees[[s]]$prednode))
-  no_cores <- detectCores() - 1
-  cl <- makeCluster(no_cores)
-  clusterExport(cl, c("metr", "par", "treedata", "n"), envir=environment())
   si <- parSapply(cl, 1:n, function (s) sapply (s:n, function (j) metr(par[[s]], par[[j]], treedata[[s]])))
-  stopCluster(cl)
 
   sim <- matrix(0, length(trees), length(trees))
   for (i in 1:n){
@@ -542,9 +538,6 @@ M5 <- function(observeddata, treedata, Y, X, trees, sameobs){
   s <- matrix(0, length(pamtrees), length(pamtrees))
   di <- lapply(1:length(pamtrees), function (i) disjnorm(pamtrees[[i]], trees[[i]],observeddata, treedata[[i]] ,X, Y[i], sameobs))
 
-  no_cores <- detectCores() - 1
-  cl <- makeCluster(no_cores)
-  clusterExport(cl, c("dis", "di", "n", "pamtrees" ), envir=environment())
 
   if(sameobs==TRUE){
     si <- parSapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresptrain, pamtrees[[j]]$predresptrain)))
@@ -554,7 +547,6 @@ M5 <- function(observeddata, treedata, Y, X, trees, sameobs){
   }
 
   si <- parSapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresp, pamtrees[[j]]$predresp)))
-  stopCluster(cl)
 
   for (i in 1:n){
     s[i, c(i:n)] <- si[[i]]
