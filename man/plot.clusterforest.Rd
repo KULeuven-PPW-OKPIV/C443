@@ -9,7 +9,10 @@
 \arguments{
 \item{x}{A clusterforest object}
 
-\item{solution}{The solution to plot the medoid trees from. Default = NULL}
+\item{...}{Additional arguments}
+
+\item{solution}{The solution to plot the medoid trees from. If NULL, plots with the average silhouette width, within cluster similiarty
+(and predictive accuracy) per solution are returned. Default = NULL}
 
 \item{predictive_plots}{Indicating whether predictive plots should be returned: A plot showing the predictive accuracy
 when making predictions based on the medoid trees, and a plot of the agreement between the class label
@@ -17,7 +20,8 @@ for each object predicted on the basis of the random forest as a whole versus ba
 }
 \description{
 A function that can be used to plot a clusterforest object, either by returning plots
-with information on the cluster solutions (e.g., average silhouette width), or plots of the medoid trees of each solution.
+with information such as average silhouette width and within cluster siiliarity on the cluster solutions, 
+or plots of the medoid trees of each solution.
 }
 \details{
 This function can be used to plot a clusterforest object in two ways. If it's used without specifying a solution,
@@ -57,7 +61,7 @@ Trees <- lapply(1:10, function (i) GrowTree(x=c("npreg", "glu",  "bp",
 Boots[[i]] ))
 
 ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
-fromclus=1, toclus=5, sameobs=FALSE)
+fromclus=1, toclus=5, sameobs=FALSE, no_cores=2)
 plot(ClusterForest)
 plot(ClusterForest,2)
 }

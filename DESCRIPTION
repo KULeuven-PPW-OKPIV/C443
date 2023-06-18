@@ -2,7 +2,7 @@ Package: C443
 Type: Package
 Title: See a Forest for the Trees
 Version: 3.3.1
-Imports: MASS, partykit, rpart, RColorBrewer, grDevices, gridExtra, ggplot2, cluster, parallel, foreach, igraph, stats, graphics, plyr, ranger, randomForest, methods
+Imports: MASS, partykit, rpart, RColorBrewer, grDevices, gridExtra, ggplot2, cluster, parallel, foreach, igraph, stats, graphics, plyr, ranger, randomForest, methods, doParallel
 LazyData: true
 Encoding: UTF-8
 Date: 2023-01-15

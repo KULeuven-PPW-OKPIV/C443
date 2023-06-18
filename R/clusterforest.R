@@ -90,14 +90,14 @@
 #'
 #'#Clustering the trees in this forest
 #'ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
-#'fromclus=1, toclus=2, sameobs=FALSE)
+#'fromclus=1, toclus=2, sameobs=FALSE, no_cores=2)
 #'
 #'#Example RandomForest
 #'Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=20,
 #'max.depth=3)
 #'
 #'ClusterForest<- clusterforest(observeddata=Pima.tr,trees=Pima.tr.ranger,m=5,
-#'                            fromclus=1, toclus=2, sameobs=FALSE)
+#'                            fromclus=1, toclus=2, sameobs=FALSE, no_cores=2)
 
 
 clusterforest <- function (observeddata, treedata=NULL, trees, simmatrix=NULL, m=NULL, tol=NULL, weight=NULL,fromclus=1, toclus=1, treecov=NULL, sameobs=FALSE, seed=NULL, no_cores = detectCores(logical=FALSE)){

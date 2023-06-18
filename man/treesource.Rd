@@ -7,7 +7,7 @@
 treesource(clusterforest, solution)
 }
 \arguments{
-\item{clusterforest}{The clusterforest object}
+\item{clusterforest}{The clusterforest object, indluding the treecov attribute.}
 
 \item{solution}{The solution}
 }
@@ -19,7 +19,8 @@ treesource(clusterforest, solution)
 }
 \description{
 A function that can be used to get insight into a clusterforest solution, in the case that there are known
-sources of variation underlying the forest.
+sources of variation underlying the forest. These known sources of variation must be included in the clusterforest object
+(and thus must be defined when running the clusterforest function)
 In case of a categorical covariate, it visualizes the number of trees from each value of the covariate that belong to each cluster.
 In case of a continuous covariate, it returns the mean and standard deviation of the covariate in each cluster.
 }
@@ -61,7 +62,7 @@ Trees=c(TreesA,TreesC)
 
 #Cluster the trees
 ClusterForest<- clusterforest(observeddata=drugs,treedata=Boots,trees=Trees,m=1,
-fromclus=2, toclus=2, treecov=rep(c("Amphet","Coke"),each=5), sameobs=FALSE)
+fromclus=2, toclus=2, treecov=rep(c("Amphet","Coke"),each=5), sameobs=FALSE, no_cores=2)
 
 #Link cluster result to known source of variation
 treesource(ClusterForest, 2)

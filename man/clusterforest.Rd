@@ -23,7 +23,7 @@ clusterforest(
 \arguments{
 \item{observeddata}{The entire observed dataset}
 
-\item{treedata}{A list of dataframes on which the trees are based. Not necessary if the data set is included in the tree object.}
+\item{treedata}{A list of dataframes on which the trees are based. Not necessary if the data set is included in the tree object already.}
 
 \item{trees}{A list of trees of class party, classes inheriting from party (e.g., glmtree), classes that can be coerced to party (i.e., rpart, Weka_tree, XMLnode), or a randomForest or ranger object.}
 
@@ -48,7 +48,8 @@ is 1, then a split on that predictor in tree A will be assumed equal to a split 
 
 \item{toclus}{The highest number of clusters for which the PAM algorithm should be run. Default=1.}
 
-\item{treecov}{A vector/dataframe with the covariate value(s) for each tree in the forest (1 column per covariate).}
+\item{treecov}{A vector/dataframe with the covariate value(s) for each tree in the forest (1 column per covariate) in the case of known
+sources of variation underlying the forest, that should be linked to the clustering solution.}
 
 \item{sameobs}{Are the same observations included in every tree data set? For example, in the case of subsamples or bootstrap samples, the answer is no. Default=FALSE}
 
@@ -106,14 +107,14 @@ Trees <- lapply(1:10, function (i) GrowTree(x=c("npreg", "glu",  "bp",  "skin",
 
 #Clustering the trees in this forest
 ClusterForest<- clusterforest(observeddata=Pima.tr,treedata=Boots,trees=Trees,m=1,
-fromclus=1, toclus=2, sameobs=FALSE)
+fromclus=1, toclus=2, sameobs=FALSE, no_cores=2)
 
 #Example RandomForest
 Pima.tr.ranger <- ranger(type ~ ., data = Pima.tr, keep.inbag = TRUE, num.trees=20,
 max.depth=3)
 
 ClusterForest<- clusterforest(observeddata=Pima.tr,trees=Pima.tr.ranger,m=5,
-                           fromclus=1, toclus=2, sameobs=FALSE)
+                           fromclus=1, toclus=2, sameobs=FALSE, no_cores=2)
 }
 \references{
 \cite{Kaufman, L., & Rousseeuw, P. J. (2009). Finding groups in data: an introduction to cluster analysis (Vol. 344). John Wiley & Sons.}
