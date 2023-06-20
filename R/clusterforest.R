@@ -469,7 +469,7 @@ M3<- function (observeddata, treedata, Y, trees, sameobs){
 }
 
 ###### Measure 4: Partition metric ################
-M4<- function (observeddata, treedata, Y, trees, sameobs){
+M4 <- function (observeddata, treedata, Y, trees, sameobs){
   pamtrees <- lapply(1:length(trees), function (i) pamtree(observeddata,treedata[[i]], Y[i],trees[[i]]))
 
   n <- length(trees)
@@ -480,7 +480,8 @@ M4<- function (observeddata, treedata, Y, trees, sameobs){
   }
 
   par<- lapply(1:n, function (s) part(treedata[[s]], pamtrees[[s]]$prednode))
-  si <- parSapply(cl, 1:n, function (s) sapply (s:n, function (j) metr(par[[s]], par[[j]], treedata[[s]])))
+
+  si <- sapply(1:n, function (s) sapply (s:n, function (j) metr(par[[s]], par[[j]], treedata[[s]])))
 
   sim <- matrix(0, length(trees), length(trees))
   for (i in 1:n){
@@ -540,13 +541,13 @@ M5 <- function(observeddata, treedata, Y, X, trees, sameobs){
 
 
   if(sameobs==TRUE){
-    si <- parSapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresptrain, pamtrees[[j]]$predresptrain)))
+    si <- sapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresptrain, pamtrees[[j]]$predresptrain)))
   }
   else{
-    si <- parSapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresp, pamtrees[[j]]$predresp)))
+    si <- sapply(1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresp, pamtrees[[j]]$predresp)))
   }
 
-  si <- parSapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresp, pamtrees[[j]]$predresp)))
+  si <- sapply(1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresp, pamtrees[[j]]$predresp)))
 
   for (i in 1:n){
     s[i, c(i:n)] <- si[[i]]
