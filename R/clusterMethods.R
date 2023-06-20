@@ -20,7 +20,7 @@
 #' @param predictive_plots Indicating whether predictive plots should be returned: A plot showing the predictive accuracy
 #' when making predictions based on the medoid trees, and a plot of the agreement between the class label
 #' for each object predicted on the basis of the random forest as a whole versus based on the medoid trees. Default = FALSE.
-#' @param ... Additional arguments
+#' @param ... Additional arguments that can be used in generic plot function, or in plot.party.
 #' @export
 #' @importFrom cluster pam
 #' @importFrom graphics axis plot mtext
@@ -76,7 +76,7 @@ plot.clusterforest <- function(x, ..., solution=NULL, predictive_plots=FALSE) {
     #### Silhouete plot
     sil[unlist(lapply(sil , is.null))] <- NA
     sil<- unlist(sil)
-    silplot <- plot(sil, main = "Silhouette plot", xlab = "Number of clusters", ylab = "Average Silhouette width", xlim=c(1,length(medoids)), xaxt="n")
+    silplot <- plot(sil, main = "Silhouette plot", xlab = "Number of clusters", ylab = "Average Silhouette width", xlim=c(1,length(medoids)), xaxt="n",...)
     silplot <- silplot + axis(1, at = seq(from = 1, to = length(medoids), by = 1))
 
 
@@ -96,7 +96,7 @@ plot.clusterforest <- function(x, ..., solution=NULL, predictive_plots=FALSE) {
     }
   } else{
     for(i in 1:solution){
-      plot(x$medoidtrees[[solution]][[i]])
+      plot(x$medoidtrees[[solution]][[i]],...)
     }
   }
 }
@@ -108,10 +108,10 @@ plot.clusterforest <- function(x, ..., solution=NULL, predictive_plots=FALSE) {
 #'
 #' @param x A clusterforest object
 #' @param solution The solution to print the medoid trees from. Default = NULL
-#' @param ... Additional arguments
+#' @param ... Additional arguments that can be used in the generic print function.
 #' @export
 print.clusterforest<- function(x, ...,solution=1){
-  print(unlist(x$medoidtrees[solution], recursive=FALSE))
+  print(unlist(x$medoidtrees[solution], recursive=FALSE,...))
   cat("Cluster to which each tree is assigned: " ,unlist(x$clusters[solution], recursive=FALSE))
 }
 
@@ -119,7 +119,7 @@ print.clusterforest<- function(x, ...,solution=1){
 #'
 #' A function to summarize a clusterforest object.
 #' @param object A clusterforest object
-#' @param ... Additional arguments
+#' @param ... Additional arguments that can be used in the generic summary function.
 #' @export
 summary.clusterforest<- function(object,...){
   cat("Solutions checked: " , length(object$medoids), "\n")
