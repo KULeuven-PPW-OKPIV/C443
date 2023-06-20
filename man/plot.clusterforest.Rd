@@ -4,12 +4,10 @@
 \alias{plot.clusterforest}
 \title{Plot a clusterforest object}
 \usage{
-\method{plot}{clusterforest}(x, ..., solution = NULL, predictive_plots = FALSE)
+\method{plot}{clusterforest}(x, solution = NULL, predictive_plots = FALSE, ...)
 }
 \arguments{
 \item{x}{A clusterforest object}
-
-\item{...}{Additional arguments}
 
 \item{solution}{The solution to plot the medoid trees from. If NULL, plots with the average silhouette width, within cluster similiarty
 (and predictive accuracy) per solution are returned. Default = NULL}
@@ -17,6 +15,8 @@
 \item{predictive_plots}{Indicating whether predictive plots should be returned: A plot showing the predictive accuracy
 when making predictions based on the medoid trees, and a plot of the agreement between the class label
 for each object predicted on the basis of the random forest as a whole versus based on the medoid trees. Default = FALSE.}
+
+\item{...}{Additional arguments that can be used in generic plot function, or in plot.party.}
 }
 \description{
 A function that can be used to plot a clusterforest object, either by returning plots

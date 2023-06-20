@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{A clusterforest object}
 
-\item{...}{Additional arguments}
+\item{...}{Additional arguments that can be used in the generic summary function.}
 }
 \description{
 A function to summarize a clusterforest object.

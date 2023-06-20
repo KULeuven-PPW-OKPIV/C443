@@ -4,14 +4,14 @@
 \alias{print.clusterforest}
 \title{Print a clusterforest object}
 \usage{
-\method{print}{clusterforest}(x, ..., solution = 1)
+\method{print}{clusterforest}(x, solution = 1, ...)
 }
 \arguments{
 \item{x}{A clusterforest object}
 
-\item{...}{Additional arguments}
-
 \item{solution}{The solution to print the medoid trees from. Default = NULL}
+
+\item{...}{Additional arguments that can be used in the generic print function.}
 }
 \description{
 A function that can be used to print a clusterforest object.

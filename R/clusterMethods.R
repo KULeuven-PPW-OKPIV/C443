@@ -56,7 +56,7 @@
 #' fromclus=1, toclus=5, sameobs=FALSE, no_cores=2)
 #'plot(ClusterForest)
 #'plot(ClusterForest,2)
-plot.clusterforest <- function(x, ..., solution=NULL, predictive_plots=FALSE) {
+plot.clusterforest <- function(x,solution=NULL, predictive_plots=FALSE, ... ) {
   clusters=x$clusters
   medoids=x$medoids
   mds=x$medoidtrees
@@ -110,7 +110,7 @@ plot.clusterforest <- function(x, ..., solution=NULL, predictive_plots=FALSE) {
 #' @param solution The solution to print the medoid trees from. Default = NULL
 #' @param ... Additional arguments that can be used in the generic print function.
 #' @export
-print.clusterforest<- function(x, ...,solution=1){
+print.clusterforest<- function(x,solution=1,...){
   print(unlist(x$medoidtrees[solution], recursive=FALSE,...))
   cat("Cluster to which each tree is assigned: " ,unlist(x$clusters[solution], recursive=FALSE))
 }
