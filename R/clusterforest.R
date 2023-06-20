@@ -541,7 +541,7 @@ M5 <- function(observeddata, treedata, Y, X, trees, sameobs){
 
 
   if(sameobs==TRUE){
-    si <- sapply(cl, 1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresptrain, pamtrees[[j]]$predresptrain)))
+    si <- sapply(1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresptrain, pamtrees[[j]]$predresptrain)))
   }
   else{
     si <- sapply(1:n, function (i) sapply (i:n, function (j) dis(di[[i]], di[[j]], pamtrees[[i]]$predresp, pamtrees[[j]]$predresp)))
